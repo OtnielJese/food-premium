@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${DB_NAME:-food_premium}
+      POSTGRES_USER: ${DB_USER:-food}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-food}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-food}"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME:-food_premium}
+      DB_USER: ${DB_USER:-food}
+      DB_PASSWORD: ${DB_PASSWORD:-food}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
